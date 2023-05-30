@@ -5,6 +5,11 @@
 #include "IPCDefines.h"
 
 static SOCKET ListenSocket;
+static fd_set fdSocket;
+
+static HANDLE h_pip;
+static HANDLE h_file;
+static LPCTSTR pBuf;
 
 typedef struct TagMsg {
     char buffer[BUF_SIZE];
@@ -15,7 +20,9 @@ bool SendStr(HWND hWnd, TagMsg* msg, int mode_sel);
 
 bool RecvStr(char* msg);
 
-bool InitIPCAll();
+bool InitRecvIPCAll();
+
+bool InitSendIPCAll();
 
 bool RecvStrFromMes(LPARAM lParam, char* msg);
 
@@ -26,3 +33,7 @@ static SOCKET CreateListenSocket1();
 static SOCKET CreateListenSocket2();
 
 static bool RecvStrFromSocket(SOCKET ls, char* msg);
+
+static bool RecvStrFromPip(char* msg);
+
+static bool RecvStrFromFile(char* msg);

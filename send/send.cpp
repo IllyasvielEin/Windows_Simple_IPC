@@ -192,8 +192,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                     break;
                 }
                 TagMsg msg;
-                GetWindowText(hWndEdit, (LPWSTR)msg.buffer, length + 1);
-                msg.length = length;
+                ZeroMemory(msg.buffer, BUF_SIZE);
+                static LPWSTR lpchar = new WCHAR[BUF_SIZE];
+                ZeroMemory(lpchar, BUF_SIZE);
+                GetWindowText(hWndEdit, lpchar, length+1);
+                WideCharToMultiByte(CP_ACP, NULL, lpchar, -1, msg.buffer, length + 1, NULL, FALSE);
+                msg.length = length+1;
                 if (SendStr(hWnd, &msg, COMMODE)) {
                     MessageBox(hWnd, (LPCWSTR)msg.buffer, L"SendBox", MB_OK);
                 }

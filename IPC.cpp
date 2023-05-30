@@ -1,6 +1,8 @@
 #include "IPC.h"
 #include <stdlib.h>
 
+
+
 bool SendStr(HWND hWnd, TagMsg* msg, int mode_sel)
 {
     bool susceed = false;
@@ -47,13 +49,11 @@ bool SendStr(HWND hWnd, TagMsg* msg, int mode_sel)
         }
 
         int iResult;
-        do {
-            iResult = send(ConnectSocket, msg->buffer, (int)msg->length, 0);
-            if (iResult == SOCKET_ERROR) {
-                WSACleanup();
-                return false;
-            }
-        } while (iResult <= 0);
+        iResult = send(ConnectSocket, msg->buffer, msg->length, 0);
+        if (iResult == SOCKET_ERROR) {
+            WSACleanup();
+            return false;
+        }
         
 
         iResult = shutdown(ConnectSocket, SD_SEND);
@@ -63,6 +63,74 @@ bool SendStr(HWND hWnd, TagMsg* msg, int mode_sel)
         }
 
         susceed = true;
+    }
+    case KMEMORY:
+    {
+        h_file = CreateFileMapping(
+            INVALID_HANDLE_VALUE,
+            NULL,
+            PAGE_READWRITE,
+            0,
+            BUF_SIZE,
+            L"MyFile");
+
+        if (h_file == NULL) {
+            return false;
+        }
+
+        pBuf = (LPTSTR)MapViewOfFile(h_file,
+            FILE_MAP_ALL_ACCESS,
+            0,
+            0,
+            BUF_SIZE);
+
+        if (pBuf == NULL) {
+            CloseHandle(h_file);
+            return 1;
+        }
+
+        strcpy_s((char*)pBuf, BUF_SIZE, (const char*)msg);
+        
+
+        
+        // 清理资源
+        UnmapViewOfFile(pBuf);
+        //CloseHandle(h_file);
+    }
+    case KPIP:
+    {
+
+        h_pip = CreateNamedPipe(L"\\\\.\\pipe\\mynamedpipe",
+            PIPE_ACCESS_DUPLEX | FILE_FLAG_OVERLAPPED | WRITE_DAC,
+            PIPE_TYPE_BYTE | PIPE_TYPE_MESSAGE | PIPE_WAIT,
+            PIPE_UNLIMITED_INSTANCES,
+            1024,
+            1024,
+            NMPWAIT_USE_DEFAULT_WAIT,
+            NULL
+        );
+
+        if (h_pip == INVALID_HANDLE_VALUE) {
+            return false;
+        }
+
+        // 连接管道
+        if (!ConnectNamedPipe(h_pip, NULL)) {
+            CloseHandle(h_pip);
+            return false;
+        }
+
+        // 发送字符串
+        
+        DWORD numBytesWritten;
+        if (!WriteFile(h_pip, msg, (int)msg->length, &numBytesWritten, NULL)) {
+            CloseHandle(h_pip);
+            return false;
+        }
+
+        // 关闭管道句柄
+        //CloseHandle(h_pip);
+        return true;
     }
     default:
         break;
@@ -79,13 +147,14 @@ bool RecvStrFromMes(LPARAM lParam, char* msg) {
     PCOPYDATASTRUCT pcbs = (PCOPYDATASTRUCT)lParam;
     if (pcbs->dwData == 0) {
         TagMsg* tmp = (TagMsg*)(pcbs->lpData);
+        strcpy_s(msg, tmp->length, tmp->buffer);
         msg = tmp->buffer;
         return TRUE;
     }
     return FALSE;
 }
 
-bool InitIPCAll()
+bool InitRecvIPCAll()
 {
     bool succeed = false;
     if (InitSocket()) {
@@ -93,6 +162,11 @@ bool InitIPCAll()
     }
 
     return succeed;
+}
+
+bool InitSendIPCAll()
+{
+    return false;
 }
 
 bool InitSocket()
@@ -106,6 +180,9 @@ bool InitSocket()
     if (ioctlsocket(ListenSocket, FIONBIO, (unsigned long*)&ul)) {
         return false;
     }
+
+    FD_ZERO(&fdSocket);
+    FD_SET(ListenSocket, &fdSocket);
 
     return true;
 }
@@ -185,6 +262,15 @@ bool RecvStr(char* msg)
     if (RecvStrFromSocket(ListenSocket, msg)) {
         sucseed = true;
     }
+    else if (RecvStrFromPip(msg)) {
+        sucseed = true;
+    }
+    else if (RecvStrFromFile(msg)) {
+        sucseed = true;
+    }
+    else {
+
+    }
 
     return sucseed;
 }
@@ -195,7 +281,42 @@ bool RecvStrFromSocket(SOCKET ls, char* msg)
         return false;
     }
 
-    SOCKET ClientSocket = accept(ls, NULL, NULL);
+    if (!msg) return false;
+
+
+    fd_set fdRead = fdSocket;
+    timeval timeout{ .tv_sec = 0, .tv_usec = 0 };
+    if (0 >= select(NULL, &fdRead, NULL, NULL, &timeout)) {
+        return false;
+    }
+    for (int i = 0; i < (int)fdSocket.fd_count; ++i) {
+        SOCKET s = fdSocket.fd_array[i];
+        if (FD_ISSET(s, &fdRead)) {
+            if (s == ListenSocket) {
+                SOCKET ClientSocket = accept(ls, NULL, NULL);
+                if (ClientSocket == INVALID_SOCKET) {
+                    continue;
+                }
+                FD_SET(ClientSocket, &fdSocket);
+                return false;
+            }
+            else {
+                char RecvBuffer[BUF_SIZE];
+                ZeroMemory(RecvBuffer, BUF_SIZE);
+                int iResult = recv(s, RecvBuffer, BUF_SIZE, 0);
+                if (iResult > 0) {
+                    memcpy(msg, RecvBuffer, iResult);
+                }
+                else {
+                    
+                }
+                closesocket(s);
+                FD_CLR(s, &fdSocket);
+            }
+        }
+    }
+
+    /*SOCKET ClientSocket = accept(ls, NULL, NULL);
     if (ClientSocket == INVALID_SOCKET) {
         return false;
     }
@@ -203,20 +324,98 @@ bool RecvStrFromSocket(SOCKET ls, char* msg)
     char RecvBuffer[BUF_SIZE];
     ZeroMemory(RecvBuffer, BUF_SIZE);
     int iResult;
-    iResult = recv(ClientSocket, RecvBuffer, BUF_SIZE, 0);
-    if (iResult == SOCKET_ERROR) {
-        int error = WSAGetLastError();
-        if (error != WSAEWOULDBLOCK) {
-            closesocket(ClientSocket);
-            WSACleanup();
-            return false;
+    do {
+        iResult = recv(ClientSocket, RecvBuffer, BUF_SIZE, 0);
+        if (iResult == SOCKET_ERROR) {
+            int error = WSAGetLastError();
+            if (error != WSAEWOULDBLOCK) {
+                closesocket(ClientSocket);
+                WSACleanup();
+                return false;
+            }
         }
-    }
-    if (iResult > 0) {
-        if (!msg) return false;
-        memcpy(msg, RecvBuffer, iResult);
-        closesocket(ClientSocket);
+        if (iResult > 0) {
+            memcpy(msg, RecvBuffer, iResult);
+            closesocket(ClientSocket);
+        }
+    } while (iResult > 0);*/
+
+    return true;
+}
+
+bool RecvStrFromPip(char* msg)
+{
+    char buffer[BUF_SIZE];
+
+    if (WaitNamedPipe(L"\\\\.\\pipe\\mynamedpipe", NMPWAIT_NOWAIT) == false) {
+        return false;
     }
 
+    h_pip = CreateFile(
+        L"\\\\.\\pipe\\mynamedpipe",
+        GENERIC_READ,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL);
+
+    if (h_pip == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+
+    DWORD numBytesRead;
+
+    // 从管道读取数据
+    if (!ReadFile(h_pip, buffer, BUF_SIZE - 1, &numBytesRead, NULL)) {
+        CloseHandle(h_pip);
+        return false;
+    }
+    buffer[numBytesRead] = '\0';
+
+    if (numBytesRead == 0)
+    {
+        CloseHandle(h_pip);
+        return false;
+    }
+
+    //msg = new char[numBytesRead + 1];
+    strcpy_s(msg, numBytesRead + 1, buffer);
+
+    // 关闭管道句柄
+    CloseHandle(h_pip);
+    return true;
+}
+
+bool RecvStrFromFile(char* msg)
+{
+    h_file = OpenFileMapping(
+        FILE_MAP_ALL_ACCESS,
+        FALSE,
+        L"MyFile");
+
+    if (h_file == NULL) {
+        return false;
+    }
+
+    pBuf = (LPTSTR)MapViewOfFile(h_file,
+        FILE_MAP_ALL_ACCESS,
+        0,
+        0,
+        BUF_SIZE);
+
+    if (pBuf == NULL) {
+        CloseHandle(h_file);
+        return false;
+    }
+
+    //msg = new char[BUF_SIZE];
+    strcpy_s(msg, BUF_SIZE, (char*)pBuf);
+
+
+    // 清理资源
+    UnmapViewOfFile(pBuf);
+    CloseHandle(h_file);
     return true;
 }

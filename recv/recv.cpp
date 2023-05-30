@@ -38,7 +38,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return FALSE;
     }
 
-    if (!InitIPCAll()) {
+    if (!InitRecvIPCAll()) {
         return FALSE;
     }
 
@@ -66,9 +66,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         char* buf = new char[BUF_SIZE];
         ZeroMemory(buf, BUF_SIZE);
         if (RecvStr(buf)) {
-            if (buf) {
-                SetStr(hWndEdit, buf);
-            }
+            SetStr(hWndEdit, buf);
         }
         delete[] buf;
 
@@ -183,11 +181,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_COPYDATA: 
         {
-            char* msg = nullptr;
+            char* msg = new char[BUF_SIZE];
             if (RecvStrFromMes(lParam, msg)) {
                 if (msg) {
-                    SetStr(hWnd, msg);
-                    delete msg;
+                    SetStr(hWndEdit, msg);
+                    delete[] msg;
                 }
             }
         }
@@ -247,5 +245,8 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 void SetStr(HWND hWnd, char* buffer)
 {
-    SetWindowText(hWnd, (LPCWSTR)buffer);
+    LPWSTR lpwStr = new WCHAR[BUF_SIZE];
+    ZeroMemory(lpwStr, sizeof lpwStr);
+    MultiByteToWideChar(CP_ACP, NULL, buffer, -1, lpwStr, BUF_SIZE);
+    SetWindowText(hWnd, lpwStr);
 }
