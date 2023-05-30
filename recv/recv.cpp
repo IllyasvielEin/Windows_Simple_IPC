@@ -21,7 +21,7 @@ BOOL                InitInstance(HINSTANCE, int);
 LRESULT CALLBACK    WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK    About(HWND, UINT, WPARAM, LPARAM);
 
-void SetStr(HWND hWnd, char* buffer, int length);
+void SetStr(HWND hWnd, char* buffer);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
@@ -32,6 +32,15 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: 在此处放置代码。
+    WSADATA wsaData;
+    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (iResult != NO_ERROR) {
+        return FALSE;
+    }
+
+    if (!InitIPCAll()) {
+        return FALSE;
+    }
 
     // 初始化全局字符串
     /*LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
@@ -53,6 +62,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // 主消息循环:
     while (GetMessage(&msg, nullptr, 0, 0))
     {
+
+        char* buf = NULL;
+        if (RecvStr(buf)) {
+            SetStr(hWndEdit, buf);
+        }
+
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
         {
             TranslateMessage(&msg);
@@ -164,11 +179,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_COPYDATA: 
         {
-            PCOPYDATASTRUCT pcbs = (PCOPYDATASTRUCT)lParam;
-            if (pcbs->dwData == 0) {
-                auto msg = (TagMsg*)pcbs->lpData;
-                SetWindowText(hWndEdit, (LPWSTR)msg->buffer);
-                return TRUE;
+            char* msg;
+            if (RecvStrFromMes(lParam, &msg)) {
+                SetStr(hWnd, msg);
             }
         }
     case WM_COMMAND:
@@ -225,7 +238,7 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
     return (INT_PTR)FALSE;
 }
 
-void SetStr(HWND hWnd, char* buffer, int length)
+void SetStr(HWND hWnd, char* buffer)
 {
     SetWindowText(hWnd, (LPCWSTR)buffer);
 }

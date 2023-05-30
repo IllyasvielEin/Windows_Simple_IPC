@@ -30,6 +30,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
 
     // TODO: 在此处放置代码。
+    WSADATA wsaData;
+    int iResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
+    if (iResult != NO_ERROR) {
+        return FALSE;
+    }
 
     // 初始化全局字符串
     /*LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
