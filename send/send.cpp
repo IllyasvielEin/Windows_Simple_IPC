@@ -11,7 +11,7 @@ HINSTANCE hInst;                                // 当前实例
 WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 
-HWND hWnd;
+HWND hWndThis;
 HWND hwndButtonOK;
 HWND hWndEdit;
 
@@ -103,7 +103,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 将实例句柄存储在全局变量中
 
-   hWnd = CreateWindowW(
+   hWndThis = CreateWindowW(
        szWindowClass,
        szTitle,
        WS_OVERLAPPEDWINDOW,
@@ -117,13 +117,13 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        nullptr
    );
 
-   if (!hWnd)
+   if (!hWndThis)
    {
       return FALSE;
    }
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+   ShowWindow(hWndThis, nCmdShow);
+   UpdateWindow(hWndThis);
 
    // Send
    hWndEdit = CreateWindowEx(
@@ -133,7 +133,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        ES_LEFT | ES_MULTILINE | ES_AUTOHSCROLL,
        10, 100,
        10, 100,
-       hWnd,
+       hWndThis,
        (HMENU)IDC_EDITCHILD,
        hInst,
        NULL
@@ -151,9 +151,9 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        0,         // starting y position
        75,        // button width
        25,        // button height
-       hWnd,     // parent window
+       hWndThis,     // parent window
        (HMENU)IDC_BUTTON_SEND,       // ID for the OK button
-       (HINSTANCE)GetWindowLong(hWnd, GWL_HINSTANCE),
+       (HINSTANCE)GetWindowLong(hWndThis, GWL_HINSTANCE),
        NULL
    );      // pointer not needed
 
@@ -189,10 +189,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 TagMsg msg;
                 GetWindowText(hWndEdit, (LPWSTR)msg.buffer, length + 1);
                 msg.length = length;
-                if (SendStr(&msg, COMMODE)) {
-                    MessageBox(hWnd, (LPCWSTR)msg.buffer, L"SendBox", MB_OK);
-                }
-                else {
+                if (SendStr(hWnd, &msg, COMMODE)) {
                     MessageBox(hWnd, (LPCWSTR)msg.buffer, L"SendBox", MB_OK);
                 }
             } break;

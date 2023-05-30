@@ -1,6 +1,6 @@
 #include "IPC.h"
 
-bool SendStr(TagMsg* msg, int mode_sel)
+bool SendStr(HWND hWnd, TagMsg* msg, int mode_sel)
 {
     bool susceed = false;
     switch (mode_sel)
@@ -11,8 +11,13 @@ bool SendStr(TagMsg* msg, int mode_sel)
         do {
             hWndRecv = FindWindow(L"RecverWindow", L"Recver");
         } while (hWndRecv == NULL);
-        PostMessage(hWndRecv, WM_SETTEXT, 0, (LPARAM)msg->buffer);
-        susceed = true;
+        COPYDATASTRUCT cbs;
+        cbs.dwData = 0;
+        cbs.cbData = sizeof(TagMsg);
+        cbs.lpData = msg;
+        if (SendMessage(hWndRecv, WM_COPYDATA, (WPARAM)hWnd, (LPARAM)(LPVOID)&cbs)) {
+            susceed = true;
+        }
     }
     break;
     case KSOCKET:

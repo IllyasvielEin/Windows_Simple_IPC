@@ -4,12 +4,10 @@
 #include "framework.h"
 #include "IPCDefines.h"
 
-#define COMMODE KMES
-
 typedef struct TagMsg {
     char buffer[BUF_SIZE];
     int length;
 } TagMsg;
 
-bool SendStr(TagMsg* msg, int mode_sel);
+bool SendStr(HWND hWnd, TagMsg* msg, int mode_sel);
 

@@ -11,7 +11,7 @@ HINSTANCE hInst;                                // 当前实例
 WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
 WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 
-HWND hWnd;
+HWND hWndThis;
 HWND hwndButtonOK;
 HWND hWndEdit;
 
@@ -36,8 +36,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     // 初始化全局字符串
     /*LoadStringW(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
     LoadStringW(hInstance, IDC_RECV, szWindowClass, MAX_LOADSTRING);*/
-    lstrcpyW(szTitle, L"Recver");
     lstrcpyW(szWindowClass, L"RecverWindow");
+    lstrcpyW(szTitle, L"Recver");
     MyRegisterClass(hInstance);
 
     // 执行应用程序初始化:
@@ -105,7 +105,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // 将实例句柄存储在全局变量中
 
-   hWnd = CreateWindowW(
+   hWndThis = CreateWindowW(
        szWindowClass,
        szTitle,
        WS_OVERLAPPEDWINDOW,
@@ -119,22 +119,23 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
        nullptr
    );
 
-   if (!hWnd)
+   if (!hWndThis)
    {
       return FALSE;
    }
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+   ShowWindow(hWndThis, nCmdShow);
+   UpdateWindow(hWndThis);
 
    hWndEdit = CreateWindowEx(
-       0, L"EDIT",
+       0, 
+       L"EDIT",
        NULL,
        WS_CHILD | WS_VISIBLE | WS_VSCROLL |
        ES_LEFT | ES_MULTILINE | ES_AUTOHSCROLL,
        10, 100,
        10, 100,
-       hWnd,
+       hWndThis,
        (HMENU)IDC_EDITCHILD,
        hInst,
        NULL
@@ -161,6 +162,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message)
     {
+    case WM_COPYDATA: 
+        {
+            PCOPYDATASTRUCT pcbs = (PCOPYDATASTRUCT)lParam;
+            if (pcbs->dwData == 0) {
+                auto msg = (TagMsg*)pcbs->lpData;
+                SetWindowText(hWndEdit, (LPWSTR)msg->buffer);
+                return TRUE;
+            }
+        }
     case WM_COMMAND:
         {
             int wmId = LOWORD(wParam);
