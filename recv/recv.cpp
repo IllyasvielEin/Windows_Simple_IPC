@@ -63,10 +63,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     while (GetMessage(&msg, nullptr, 0, 0))
     {
 
-        char* buf = NULL;
+        char* buf = new char[BUF_SIZE];
+        ZeroMemory(buf, BUF_SIZE);
         if (RecvStr(buf)) {
-            SetStr(hWndEdit, buf);
+            if (buf) {
+                SetStr(hWndEdit, buf);
+            }
         }
+        delete[] buf;
 
         if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
         {
@@ -179,9 +183,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_COPYDATA: 
         {
-            char* msg;
-            if (RecvStrFromMes(lParam, &msg)) {
-                SetStr(hWnd, msg);
+            char* msg = nullptr;
+            if (RecvStrFromMes(lParam, msg)) {
+                if (msg) {
+                    SetStr(hWnd, msg);
+                    delete msg;
+                }
             }
         }
     case WM_COMMAND:

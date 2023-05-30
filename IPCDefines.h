@@ -1,6 +1,6 @@
 #pragma once
 
-#define BUF_SIZE 256
+#define BUF_SIZE 255
 
 #define IDC_EDITCHILD 101
 #define IDC_BUTTON_SEND 102

@@ -17,7 +17,7 @@ bool RecvStr(char* msg);
 
 bool InitIPCAll();
 
-bool RecvStrFromMes(LPARAM lParam, char** msg);
+bool RecvStrFromMes(LPARAM lParam, char* msg);
 
 static bool InitSocket();
 
