@@ -1,0 +1,11 @@
+.vs
+.idea
+.vscode
+
+Debug
+Release
+cmake-build-*
+
+*.o
+*.lib
+*.exe
