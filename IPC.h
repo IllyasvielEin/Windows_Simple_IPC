@@ -6,6 +6,10 @@
 
 static SOCKET ListenSocket;
 
+static HANDLE h_pip;
+static HANDLE h_file;
+static LPCTSTR pBuf;
+
 typedef struct TagMsg {
     char buffer[BUF_SIZE];
     int length;
@@ -26,3 +30,7 @@ static SOCKET CreateListenSocket1();
 static SOCKET CreateListenSocket2();
 
 static bool RecvStrFromSocket(SOCKET ls, char* msg);
+
+static bool RecvStrFromPip(char* msg);
+
+static bool RecvStrFromFile(char* msg);

@@ -56,7 +56,72 @@ bool SendStr(HWND hWnd, TagMsg* msg, int mode_sel)
             return false;
         }
     }
-    case 
+    case KMEMORY:
+    {
+        h_file = CreateFileMapping(
+            INVALID_HANDLE_VALUE,
+            NULL,
+            PAGE_READWRITE,
+            0,
+            BUF_SIZE,
+            L"MyPage");
+
+        if (h_file == NULL) {
+            return false;
+        }
+
+        pBuf = (LPTSTR)MapViewOfFile(h_file,
+            FILE_MAP_ALL_ACCESS,
+            0,
+            0,
+            BUF_SIZE);
+
+        if (pBuf == NULL) {
+            CloseHandle(h_file);
+            return 1;
+        }
+
+        char input[BUF_SIZE];
+
+        strcpy((char*)pBuf, (const char*)msg);
+
+        // 清理资源
+        UnmapViewOfFile(pBuf);
+        CloseHandle(h_file);
+    }
+    case KPIP:
+    {
+        h_pip = CreateNamedPipe(
+            L"MyPipe",
+            PIPE_ACCESS_OUTBOUND,
+            PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT,
+            1,
+            BUF_SIZE,
+            BUF_SIZE,
+            0,
+            NULL);
+        if (h_pip == INVALID_HANDLE_VALUE) {
+            return false;
+        }
+
+        // 连接管道
+        if (!ConnectNamedPipe(h_pip, NULL)) {
+            CloseHandle(h_pip);
+            return false;
+        }
+
+        // 发送字符串
+        
+        DWORD numBytesWritten;
+        if (!WriteFile(h_pip, msg, (int)msg->length, &numBytesWritten, NULL)) {
+            CloseHandle(h_pip);
+            return false;
+        }
+
+        // 关闭管道句柄
+        CloseHandle(h_pip);
+        return true;
+    }
     default:
         break;
     }
@@ -177,7 +242,16 @@ bool RecvStr(char* msg)
 
     if (RecvStrFromSocket(ListenSocket, msg)) {
         sucseed = true;
-    } else if (  ) 
+    }
+    else if (pass) {
+
+    }
+    else if (RecvStrFromPip(msg)) {
+
+    }
+    else {
+
+    }
 
     return sucseed;
 }
@@ -263,4 +337,76 @@ bool RecvStrFromSocket(SOCKET ls, char* msg)
     //}
 
     return false;
+}
+
+bool RecvStrFromPip(char* msg)
+{
+    char buffer[BUF_SIZE];
+
+    h_pip = CreateFile(
+        L"MyPipe",
+        GENERIC_READ,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        0,
+        NULL);
+
+    if (h_pip == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+
+    DWORD numBytesRead;
+
+    // 从管道读取数据
+    if (!ReadFile(h_pip, buffer, BUF_SIZE - 1, &numBytesRead, NULL)) {
+        CloseHandle(h_pip);
+        return false;
+    }
+    buffer[numBytesRead] = '\0';
+
+    if (numBytesRead == 0)
+    {
+        CloseHandle(h_pip);
+        return false;
+    }
+    msg = new char[numBytesRead + 1];
+    strcpy_s(msg, numBytesRead + 1, buffer);
+
+    // 关闭管道句柄
+    CloseHandle(h_pip);
+    return true;
+}
+
+bool RecvStrFromFile(char* msg)
+{
+    h_file = OpenFileMapping(
+        FILE_MAP_ALL_ACCESS,
+        FALSE,
+        L"MyFile");
+
+    if (h_file == NULL) {
+        return false;
+    }
+
+    pBuf = (LPTSTR)MapViewOfFile(h_file,
+        FILE_MAP_ALL_ACCESS,
+        0,
+        0,
+        BUF_SIZE);
+
+    if (pBuf == NULL) {
+        CloseHandle(h_file);
+        return false;
+    }
+
+    msg = new char[BUF_SIZE];
+    strcpy(msg, (char*)pBuf);
+
+
+    // 清理资源
+    UnmapViewOfFile(pBuf);
+    CloseHandle(h_file);
+    return true;
 }
