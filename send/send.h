@@ -1,7 +1,9 @@
 #pragma once
 
 #include "resource.h"
+extern "C" {
 #include "../IPC.h"
+}
 
 #define MAX_LOADSTRING 100
 
@@ -21,4 +23,4 @@
 #define RECVWINDOW_WIDTH (MAINWINDOW_WIDTH-50)
 #define RECVWINDOW_HEIGHT (MAINWINDOW_HEIGHT-100)
 
-#define COMMODE KPIP
+#define COMMODE KMEMORY

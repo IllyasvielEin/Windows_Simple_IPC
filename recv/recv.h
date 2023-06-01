@@ -1,7 +1,10 @@
 #pragma once
 
 #include "resource.h"
+
+extern "C" {
 #include "../IPC.h"
+}
 
 #define MAX_LOADSTRING 100
 

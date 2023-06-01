@@ -3,6 +3,7 @@
 // 添加要在此处预编译的标头
 #include "framework.h"
 #include "IPCDefines.h"
+#include <stdbool.h>
 
 static SOCKET ListenSocket;
 static fd_set fdSocket;

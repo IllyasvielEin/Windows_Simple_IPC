@@ -25,7 +25,7 @@ bool SendStr(HWND hWnd, TagMsg* msg, int mode_sel)
     break;
     case KSOCKET:
     {
-        sockaddr_in addr;
+        SOCKADDR_IN addr;
         ZeroMemory(&addr, sizeof addr);
         addr.sin_family = AF_INET;
         if (0 == inet_pton(AF_INET, (PCSTR)"127.0.0.1", &addr.sin_addr.S_un.S_addr)) {
@@ -42,7 +42,7 @@ bool SendStr(HWND hWnd, TagMsg* msg, int mode_sel)
             return false;
         }
 
-        if (SOCKET_ERROR == connect(ConnectSocket, (sockaddr*)&addr, sizeof addr)) {
+        if (SOCKET_ERROR == connect(ConnectSocket, (SOCKADDR*)&addr, sizeof addr)) {
             closesocket(ConnectSocket);
             WSACleanup();
             return false;
@@ -236,11 +236,11 @@ SOCKET CreateListenSocket2() {
         return INVALID_SOCKET;
     }
 
-    sockaddr_in addr;
+    SOCKADDR_IN addr;
     addr.sin_family = AF_INET;
     addr.sin_addr.S_un.S_addr = INADDR_ANY;
     addr.sin_port = htons(DEFAULT_PORT_u);
-    if (SOCKET_ERROR == bind(ListenSocket, (sockaddr*)&addr, sizeof addr)) {
+    if (SOCKET_ERROR == bind(ListenSocket, (SOCKADDR*)&addr, sizeof addr)) {
         closesocket(ListenSocket);
         WSACleanup();
         return INVALID_SOCKET;
@@ -285,7 +285,9 @@ bool RecvStrFromSocket(SOCKET ls, char* msg)
 
 
     fd_set fdRead = fdSocket;
-    timeval timeout{ .tv_sec = 0, .tv_usec = 0 };
+    TIMEVAL timeout;
+    timeout.tv_sec = 0;
+    timeout.tv_usec = 0;
     if (0 >= select(NULL, &fdRead, NULL, NULL, &timeout)) {
         return false;
     }
