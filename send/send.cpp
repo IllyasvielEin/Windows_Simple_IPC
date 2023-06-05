@@ -6,6 +6,8 @@
 
 #define MAX_LOADSTRING 100
 
+int COMMODE = -1;
+
 // 全局变量:
 HINSTANCE hInst;                                // 当前实例
 WCHAR szTitle[MAX_LOADSTRING];                  // 标题栏文本
@@ -14,6 +16,7 @@ WCHAR szWindowClass[MAX_LOADSTRING];            // 主窗口类名
 HWND hWndThis;
 HWND hwndButtonOK;
 HWND hWndEdit;
+HWND hwndGroup;
 
 // 此代码模块中包含的函数的前向声明:
 ATOM                MyRegisterClass(HINSTANCE hInstance);
@@ -148,19 +151,47 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    MoveWindow(hWndEdit, 0, 0, SENDWINDOW_WIDTH, SENDWINDOW_HEIGHT, TRUE);
    UpdateWindow(hWndEdit);
 
+   hwndGroup = CreateWindowEx(0, L"BUTTON", L"选项",
+       WS_CHILD | WS_VISIBLE | BS_GROUPBOX,
+       SENDWINDOW_WIDTH + 10, 10, 130, 130,
+       hWndThis, (HMENU)IDC_OPTION1, hInstance, NULL);
+
+   HWND hwndButton1 = CreateWindowEx(0, L"BUTTON", L"消息通讯",
+       WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+       20, 30, 100, 20,
+       hwndGroup, (HMENU)IDC_OPTION1, hInstance, NULL);
+
+   HWND hwndButton2 = CreateWindowEx(0, L"BUTTON", L"套接字",
+       WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+       20, 50, 100, 20,
+       hwndGroup, (HMENU)IDC_OPTION2, hInstance, NULL);
+
+   HWND hwndButton3 = CreateWindowEx(0, L"BUTTON", L"管道",
+       WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+       20, 70, 100, 20,
+       hwndGroup, (HMENU)IDC_OPTION3, hInstance, NULL);
+
+   HWND hwndButton4 = CreateWindowEx(0, L"BUTTON", L"共享文件",
+       WS_CHILD | WS_VISIBLE | BS_AUTORADIOBUTTON,
+       20, 90, 100, 20,
+       hwndGroup, (HMENU)IDC_OPTION4, hInstance, NULL);
+
+
+   ShowWindow(hwndGroup, nCmdShow);
+
    hwndButtonOK = CreateWindow(
        L"BUTTON",        // predefined class
        L"Send",        // button text
        WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,  // styles
-       SENDWINDOW_WIDTH + 10,         // starting x position
-       0,         // starting y position
+       SENDWINDOW_WIDTH - 50,         // starting x position
+       SENDWINDOW_HEIGHT + 50,         // starting y position
        75,        // button width
        25,        // button height
        hWndThis,     // parent window
        (HMENU)IDC_BUTTON_SEND,       // ID for the OK button
        (HINSTANCE)GetWindowLong(hWndThis, GWL_HINSTANCE),
        NULL
-   );      // pointer not needed
+   );
 
    return TRUE;
 }
@@ -198,8 +229,24 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
                 GetWindowText(hWndEdit, lpchar, length+1);
                 WideCharToMultiByte(CP_ACP, NULL, lpchar, -1, msg.buffer, length + 1, NULL, FALSE);
                 msg.length = length+1;
-                if (SendStr(hWnd, &msg, COMMODE)) {
-                    MessageBox(hWnd, (LPCWSTR)msg.buffer, L"SendBox", MB_OK);
+
+                for (int i = IDC_OPTION1; i <= IDC_OPTION4; i++)
+                {
+                    BOOL bChecked = IsDlgButtonChecked(hwndGroup, i);
+                    if (bChecked == BST_CHECKED)
+                    {
+                        COMMODE = i - WM_USER;
+                    }
+                }
+
+                if (COMMODE == -1) {
+                    MessageBox(hWnd, L"未选择通信模式", L"SendBox", MB_OK);
+                } 
+                else if (SendStr(hWnd, &msg, COMMODE)) {
+                    MessageBox(hWnd, lpchar, L"SendBox", MB_OK);
+                }
+                else {
+                    MessageBox(hWnd, L"发送失败", L"SendBox", MB_OK);
                 }
             } break;
             case IDM_ABOUT:

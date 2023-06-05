@@ -181,12 +181,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
     case WM_COPYDATA: 
         {
-            char* msg = new char[BUF_SIZE];
+            static char* msg = new char[BUF_SIZE];
+            ZeroMemory(msg, BUF_SIZE);
             if (RecvStrFromMes(lParam, msg)) {
-                if (msg) {
-                    SetStr(hWndEdit, msg);
-                    delete[] msg;
-                }
+                SetStr(hWndEdit, msg);
+                return TRUE;
             }
         }
     case WM_COMMAND:

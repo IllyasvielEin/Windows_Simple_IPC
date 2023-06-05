@@ -171,7 +171,7 @@ bool InitSendIPCAll()
 
 bool InitSocket()
 {
-    ListenSocket = CreateListenSocket2();
+    ListenSocket = CreateListenSocket();
     if (ListenSocket == SOCKET_ERROR) {
         return false;
     }
@@ -187,49 +187,7 @@ bool InitSocket()
     return true;
 }
 
-SOCKET CreateListenSocket1()
-{
-    struct addrinfo* result = NULL, * ptr = NULL, hints;
-
-    ZeroMemory(&hints, sizeof hints);
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
-    hints.ai_flags = AI_PASSIVE;
-
-    int iResult = getaddrinfo(NULL, DEFAULT_PORT, &hints, &result);
-    if (iResult != 0) {
-        WSACleanup();
-        return INVALID_SOCKET;
-    }
-
-    ListenSocket = INVALID_SOCKET;
-    ListenSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-
-    if (ListenSocket == INVALID_SOCKET) {
-        freeaddrinfo(result);
-        WSACleanup();
-        return INVALID_SOCKET;
-    }
-
-    iResult = bind(ListenSocket, result->ai_addr, (int)result->ai_addrlen);
-    if (iResult == SOCKET_ERROR) {
-        freeaddrinfo(result);
-        closesocket(ListenSocket);
-        WSACleanup();
-        return INVALID_SOCKET;
-    }
-
-    if (listen(ListenSocket, SOMAXCONN) == SOCKET_ERROR) {
-        closesocket(ListenSocket);
-        WSACleanup();
-        return INVALID_SOCKET;
-    }
-
-    return ListenSocket;
-}
-
-SOCKET CreateListenSocket2() {
+SOCKET CreateListenSocket() {
     ListenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (INVALID_SOCKET == ListenSocket) {
         WSACleanup();
@@ -283,7 +241,6 @@ bool RecvStrFromSocket(SOCKET ls, char* msg)
 
     if (!msg) return false;
 
-
     fd_set fdRead = fdSocket;
     TIMEVAL timeout;
     timeout.tv_sec = 0;
@@ -317,30 +274,6 @@ bool RecvStrFromSocket(SOCKET ls, char* msg)
             }
         }
     }
-
-    /*SOCKET ClientSocket = accept(ls, NULL, NULL);
-    if (ClientSocket == INVALID_SOCKET) {
-        return false;
-    }
-
-    char RecvBuffer[BUF_SIZE];
-    ZeroMemory(RecvBuffer, BUF_SIZE);
-    int iResult;
-    do {
-        iResult = recv(ClientSocket, RecvBuffer, BUF_SIZE, 0);
-        if (iResult == SOCKET_ERROR) {
-            int error = WSAGetLastError();
-            if (error != WSAEWOULDBLOCK) {
-                closesocket(ClientSocket);
-                WSACleanup();
-                return false;
-            }
-        }
-        if (iResult > 0) {
-            memcpy(msg, RecvBuffer, iResult);
-            closesocket(ClientSocket);
-        }
-    } while (iResult > 0);*/
 
     return true;
 }

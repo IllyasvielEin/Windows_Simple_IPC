@@ -31,7 +31,7 @@ static bool InitSocket();
 
 static SOCKET CreateListenSocket1();
 
-static SOCKET CreateListenSocket2();
+static SOCKET CreateListenSocket();
 
 static bool RecvStrFromSocket(SOCKET ls, char* msg);
 
